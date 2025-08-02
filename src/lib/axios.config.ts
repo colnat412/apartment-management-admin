@@ -8,7 +8,7 @@ export const customAxios = <T = unknown>(
   const instance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3030"
   });
-  
+
   instance.interceptors.request.use((config) => {
     const token = localStorage.getItem("accessToken"); // or from Redux, Zustand...
     if (token) {

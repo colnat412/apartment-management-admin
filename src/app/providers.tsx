@@ -25,7 +25,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
-      <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
+        <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
       </SidebarProvider>
     </QueryClientProvider>
   );
