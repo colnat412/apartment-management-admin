@@ -1,31 +1,30 @@
 "use client";
 
 import {
-  ColumnDef,
-  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-  VisibilityState
+  useReactTable
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
-import * as React from "react";
-
 import {
-  useBlockControllerGetActive,
-  useBlockControllerPagination
-} from "@/api";
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  CircleX,
+  Loader2Icon
+} from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { columns } from "./column";
+
+import { useBlockControllerPagination } from "@/api";
 import {
   BlockControllerPagination200AllOf,
-  GetBlockActiveResponseDto,
   GetBlockResponseDto
 } from "@/api/schemas";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -41,86 +40,19 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { dateToVN } from "@/utils/date";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
-import { useEffect } from "react";
-
-export const columns: ColumnDef<GetBlockResponseDto>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => <div className="capitalize">{row.getValue("name")}</div>
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created At",
-    cell: ({ row }) => (
-      <div className="capitalize">{dateToVN(row.getValue("createdAt"))}</div>
-    )
-  },
-  {
-    accessorKey: "updatedAt",
-    header: "Updated At",
-    cell: ({ row }) => (
-      <div className="capitalize">{dateToVN(row.getValue("updatedAt"))}</div>
-    )
-  }
-
-  // {
-  //   id: "actions",
-  //   enableHiding: false,
-  //   cell: ({ row }) => {
-  //     const payment = row.original.data
-
-  //     return (
-  //       <DropdownMenu>
-  //         <DropdownMenuTrigger asChild>
-  //           <Button variant="ghost" className="h-8 w-8 p-0">
-  //             <span className="sr-only">Open menu</span>
-  //             <MoreHorizontal />
-  //           </Button>
-  //         </DropdownMenuTrigger>
-  //         <DropdownMenuContent align="end">
-  //           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-  //           <DropdownMenuItem
-  //             onClick={() => navigator.clipboard.writeText(payment.)}
-  //           >
-  //             Copy payment ID
-  //           </DropdownMenuItem>
-  //           <DropdownMenuSeparator />
-  //           <DropdownMenuItem>View customer</DropdownMenuItem>
-  //           <DropdownMenuItem>View payment details</DropdownMenuItem>
-  //         </DropdownMenuContent>
-  //       </DropdownMenu>
-  //     )
-  //   },
-  // },
-];
+const PageSizeOptions = [10, 20, 30, 40, 50];
 
 export default function DataTableDemo() {
-  const [data, setData] = React.useState<BlockControllerPagination200AllOf>({
+  const [data, setData] = useState<BlockControllerPagination200AllOf>({
     data: {
       items: [],
       total: 0,
@@ -129,7 +61,15 @@ export default function DataTableDemo() {
       totalPages: 0
     }
   });
-  const { mutate } = useBlockControllerPagination({
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: PageSizeOptions[0]
+  });
+
+  const [filterName, setFilterName] = useState("");
+
+  const { mutate, isPending } = useBlockControllerPagination({
     mutation: {
       onSuccess: (data: BlockControllerPagination200AllOf) => {
         setData(data);
@@ -139,58 +79,48 @@ export default function DataTableDemo() {
   });
 
   useEffect(() => {
-    mutate({
-      data: {
-        name: ""
-      },
-      params: {
-        page: 1,
-        limit: 10
-      }
-    });
-  }, []);
+    const handler = setTimeout(() => {
+      mutate({
+        data: {
+          name: filterName
+        },
+        params: {
+          page: pagination.pageIndex + 1,
+          limit: pagination.pageSize
+        }
+      });
+    }, 300);
 
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+    return () => clearTimeout(handler);
+  }, [pagination, filterName]);
 
   const table = useReactTable<GetBlockResponseDto>({
-    data: data.data?.items || [],
+    data: data?.data?.items ?? [],
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    pageCount: Math.ceil((data?.data?.total ?? 0) / pagination.pageSize),
+    manualPagination: true,
+    state: { pagination },
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection
-    }
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+        <div className="flex items-center space-x-2">
+          <Input
+            className="max-w-sm"
+            disabled={isPending}
+            placeholder="Tìm kiếm theo tên..."
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+          />
+          {filterName && <CircleX onClick={() => setFilterName("")} />}
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button className="ml-auto" variant="outline">
               Columns <ChevronDown />
             </Button>
           </DropdownMenuTrigger>
@@ -202,8 +132,8 @@ export default function DataTableDemo() {
                 return (
                   <DropdownMenuCheckboxItem
                     key={column.id}
-                    className="capitalize"
                     checked={column.getIsVisible()}
+                    className="capitalize"
                     onCheckedChange={(value) =>
                       column.toggleVisibility(!!value)
                     }
@@ -236,57 +166,124 @@ export default function DataTableDemo() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+            {isPending ? (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
+                <TableCell colSpan={columns.length}>
+                  <div className="flex items-center justify-center">
+                    <Loader2Icon className="animate-spin" />
+                  </div>
                 </TableCell>
               </TableRow>
+            ) : (
+              <>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      className="h-24 text-center"
+                      colSpan={columns.length}
+                    >
+                      Không có dữ liệu.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             )}
           </TableBody>
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
         <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
+          <div className="flex items-center justify-between px-4">
+            <div className="flex w-full items-center gap-8 lg:w-fit">
+              <div className="hidden items-center gap-2 lg:flex">
+                <Label className="text-sm font-medium" htmlFor="rows-per-page">
+                  Rows per page
+                </Label>
+                <Select
+                  value={pagination.pageSize.toString()}
+                  onValueChange={(value) => {
+                    setPagination((prev) => ({
+                      ...prev,
+                      pageSize: Number(value),
+                      pageIndex: 0
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="w-20" id="rows-per-page">
+                    <SelectValue placeholder={pagination.pageSize} />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {PageSizeOptions.map((value) => (
+                      <SelectItem key={value} value={`${value}`}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex w-fit items-center justify-center text-sm font-medium">
+                Page {pagination.pageIndex + 1} of {data.data?.totalPages || 0}{" "}
+                ({data.data?.total || 0} items)
+              </div>
+              <div className="ml-auto flex items-center gap-2 lg:ml-0">
+                <Button
+                  className="hidden h-8 w-8 p-0 lg:flex"
+                  disabled={!table.getCanPreviousPage()}
+                  variant="outline"
+                  onClick={() => table.setPageIndex(0)}
+                >
+                  <span className="sr-only">Go to first page</span>
+                  <ChevronsLeft />
+                </Button>
+                <Button
+                  className="size-8"
+                  disabled={!table.getCanPreviousPage()}
+                  size="icon"
+                  variant="outline"
+                  onClick={() => table.previousPage()}
+                >
+                  <span className="sr-only">Go to previous page</span>
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  className="size-8"
+                  disabled={!table.getCanNextPage()}
+                  size="icon"
+                  variant="outline"
+                  onClick={() => table.nextPage()}
+                >
+                  <span className="sr-only">Go to next page</span>
+                  <ChevronRight />
+                </Button>
+                <Button
+                  className="hidden size-8 lg:flex"
+                  disabled={!table.getCanNextPage()}
+                  size="icon"
+                  variant="outline"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                >
+                  <span className="sr-only">Go to last page</span>
+                  <ChevronsRight />
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

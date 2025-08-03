@@ -1,6 +1,7 @@
 // Date to VN
-export const dateToVN = (date: string | Date): string => {
+export const dateTimeToVN = (date: string | Date): string => {
   const d = new Date(date);
+
   return d.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -8,5 +9,15 @@ export const dateToVN = (date: string | Date): string => {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit"
+  });
+};
+
+export const dateToVN = (date: string | Date): string => {
+  const d = new Date(date);
+
+  return d.toLocaleDateString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
   });
 };

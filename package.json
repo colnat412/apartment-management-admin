@@ -9,7 +9,7 @@
     "lint": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "script-generator": "pnpx swagger-typescript-api generate -p https://82r6kn3l-3030.asse.devtunnels.ms/swagger/json -o ./src/api -n index.ts --http-client axios --modular"
+    "script-generator": "npx orval"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -43,7 +43,7 @@
     "@react-aria/visually-hidden": "3.8.22",
     "@reduxjs/toolkit": "^2.8.2",
     "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-query-devtools": "^4.40.1",
+    "@tanstack/react-query-devtools": "^5.84.1",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
